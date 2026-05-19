@@ -34,12 +34,12 @@ st.set_page_config(
 # CONSTANTS
 # ============================================================
 DAMAGE_CLASSES = [
-    "Front Breakage",
-    "Front Crushed",
-    "Front Normal",
-    "Rear Breakage",
-    "Rear Crushed",
-    "Rear Normal"
+    "F_Breakage",
+    "F_Crushed",
+    "F_Normal",
+    "R_Breakage",
+    "R_Crushed",
+    "R_Normal"
 ]
 
 MODEL_DIR = "saved_models"
