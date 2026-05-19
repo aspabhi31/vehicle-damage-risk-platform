@@ -1,50 +1,34 @@
-import streamlit as st
-from model_helper import predict
-
-st.title("Vehicle Damage Detection")
-
-uploaded_file = st.file_uploader("Upload the file", type=["jpg", "png"])
-
-if uploaded_file:
-    image_path = "temp_file.jpg"
-    with open(image_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-        st.image(uploaded_file, caption="Uploaded File", use_container_width=True)
-        prediction = predict(image_path)
-        st.info(f"Predicted Class: {prediction}")
-
 import os
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
 from PIL import Image
-import matplotlib.pyplot as plt
-import seaborn as sns
+import shap
 
-
-# Optional SHAP
-try:
-    import shap
-    SHAP_AVAILABLE = True
-except Exception:
-    SHAP_AVAILABLE = False
-
+# Your working damage detection model
+from model_helper import predict
 
 # ============================================================
 # PAGE CONFIG
 # ============================================================
 st.set_page_config(
-    page_title="Vehicle Damage Risk Platform",
+    page_title="Vehicle Insurance Risk Platform",
     page_icon="🚗",
     layout="wide"
 )
 
+# ============================================================
+# OPTIONAL SHAP
+# ============================================================
+try:
+    SHAP_AVAILABLE = True
+except Exception:
+    SHAP_AVAILABLE = False
 
 # ============================================================
-# CONSTANTS
+# MODEL PATHS
 # ============================================================
-
 MODEL_DIR = "saved_models"
 
 REPAIR_MODEL_PATH = os.path.join(
@@ -67,27 +51,6 @@ FRAUD_MODEL_PATH = os.path.join(
     "fraud_model.pkl"
 )
 
-
-# ============================================================
-# RESNET DAMAGE CLASSIFIER
-# ============================================================
-class CarClassifierCNN(nn.Module):
-    def __init__(self, num_classes=4):
-        super().__init__()
-
-        self.model = models.resnet50(weights=None)
-
-        in_features = self.model.fc.in_features
-
-        self.model.fc = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Linear(in_features, num_classes)
-        )
-
-    def forward(self, x):
-        return self.model(x)
-
-
 # ============================================================
 # LOAD MODELS
 # ============================================================
@@ -96,91 +59,44 @@ def load_models():
 
     loaded_models = {}
 
-    else:
-        loaded_models["damage_model"] = None
-
     # ========================================================
     # REPAIR MODEL
     # ========================================================
-    if os.path.exists(REPAIR_MODEL_PATH):
-
-        try:
-            loaded_models["repair_model"] = joblib.load(
-                REPAIR_MODEL_PATH
-            )
-
-        except Exception as e:
-
-            st.warning(
-                f"Could not load repair model: {e}"
-            )
-
-            loaded_models["repair_model"] = None
-
-    else:
+    try:
+        loaded_models["repair_model"] = joblib.load(
+            REPAIR_MODEL_PATH
+        )
+    except:
         loaded_models["repair_model"] = None
 
     # ========================================================
     # SEVERITY MODEL
     # ========================================================
-    if os.path.exists(SEVERITY_MODEL_PATH):
-
-        try:
-            loaded_models["severity_model"] = joblib.load(
-                SEVERITY_MODEL_PATH
-            )
-
-        except Exception as e:
-
-            st.warning(
-                f"Could not load severity model: {e}"
-            )
-
-            loaded_models["severity_model"] = None
-
-    else:
+    try:
+        loaded_models["severity_model"] = joblib.load(
+            SEVERITY_MODEL_PATH
+        )
+    except:
         loaded_models["severity_model"] = None
 
     # ========================================================
     # LABEL ENCODER
     # ========================================================
-    if os.path.exists(SEVERITY_ENCODER_PATH):
-
-        try:
-            loaded_models["severity_encoder"] = joblib.load(
-                SEVERITY_ENCODER_PATH
-            )
-
-        except Exception as e:
-
-            st.warning(
-                f"Could not load severity encoder: {e}"
-            )
-
-            loaded_models["severity_encoder"] = None
-
-    else:
+    try:
+        loaded_models["severity_encoder"] = joblib.load(
+            SEVERITY_ENCODER_PATH
+        )
+    except:
         loaded_models["severity_encoder"] = None
 
     # ========================================================
     # FRAUD MODEL
     # ========================================================
-    if os.path.exists(FRAUD_MODEL_PATH):
-
-        try:
-            loaded_models["fraud_model"] = joblib.load(
-                FRAUD_MODEL_PATH
-            )
-
-        except Exception as e:
-
-            st.warning(
-                f"Could not load fraud model: {e}"
-            )
-
-            loaded_models["fraud_model"] = None
-
-    else:
+    try:
+        loaded_models["fraud_model"] = joblib.load(
+            FRAUD_MODEL_PATH
+        )
+    except:
         loaded_models["fraud_model"] = None
 
     return loaded_models
@@ -188,10 +104,8 @@ def load_models():
 
 models_dict = load_models()
 
-
-
 # ============================================================
-# REPAIR COST
+# REPAIR COST PREDICTION
 # ============================================================
 def predict_repair_cost(
     damage_class,
@@ -206,8 +120,10 @@ def predict_repair_cost(
         base_cost = {
             "Front Breakage": 40000,
             "Front Crushed": 90000,
+            "Front Normal": 10000,
             "Rear Breakage": 35000,
-            "Rear Crushed": 80000
+            "Rear Crushed": 80000,
+            "Rear Normal": 8000
         }
 
         cost = (
@@ -227,7 +143,6 @@ def predict_repair_cost(
     prediction = model.predict(X)[0]
 
     return float(prediction)
-
 
 # ============================================================
 # CLAIM SEVERITY
@@ -271,7 +186,6 @@ def predict_claim_severity(
 
     return pred_label
 
-
 # ============================================================
 # FRAUD PREDICTION
 # ============================================================
@@ -290,7 +204,7 @@ def predict_fraud(
     model = models_dict["fraud_model"]
 
     # ========================================================
-    # FALLBACK
+    # FALLBACK LOGIC
     # ========================================================
     if model is None:
 
@@ -345,6 +259,7 @@ def predict_fraud(
     if SHAP_AVAILABLE:
 
         try:
+
             preprocessor = model.named_steps[
                 "preprocessor"
             ]
@@ -404,7 +319,6 @@ def predict_fraud(
         top_drivers
     )
 
-
 # ============================================================
 # APP HEADER
 # ============================================================
@@ -415,12 +329,12 @@ Upload a vehicle image and analyze insurance risk using
 end-to-end machine learning.
 
 ### Features
+- Vehicle Damage Detection
 - Repair Cost Estimation
 - Claim Severity Prediction
 - Fraud Detection
 - SHAP Explainability
 """)
-
 
 # ============================================================
 # SIDEBAR
@@ -463,31 +377,12 @@ policy_age_months = st.sidebar.number_input(
     value=24
 )
 
-days_since_policy_inception = (
-    st.sidebar.number_input(
-        "Days Since Policy Inception",
-        min_value=1,
-        max_value=10000,
-        value=730
-    )
+days_since_policy_inception = st.sidebar.number_input(
+    "Days Since Policy Inception",
+    min_value=1,
+    max_value=10000,
+    value=730
 )
-
-
-# ============================================================
-# DAMAGE CLASS INPUT
-# ============================================================
-damage_class = st.sidebar.selectbox(
-    "Damage Class",
-    [
-        "Front Breakage",
-        "Front Crushed",
-        "Front Normal",
-        "Rear Breakage",
-        "Rear Crushed",
-        "Rear Normal"
-    ]
-)
-
 
 # ============================================================
 # FILE UPLOAD
@@ -497,11 +392,15 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-
 # ============================================================
 # MAIN PIPELINE
 # ============================================================
 if uploaded_file is not None:
+
+    image_path = "temp_file.jpg"
+
+    with open(image_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
     image = Image.open(uploaded_file)
 
@@ -513,12 +412,23 @@ if uploaded_file is not None:
 
     with st.spinner("Analyzing claim..."):
 
+        # ====================================================
+        # DAMAGE DETECTION
+        # ====================================================
+        damage_class = predict(image_path)
+
+        # ====================================================
+        # REPAIR COST
+        # ====================================================
         repair_cost = predict_repair_cost(
             damage_class,
             vehicle_age,
             mileage
         )
 
+        # ====================================================
+        # CLAIM SEVERITY
+        # ====================================================
         claim_severity = predict_claim_severity(
             damage_class,
             vehicle_age,
@@ -526,6 +436,9 @@ if uploaded_file is not None:
             repair_cost
         )
 
+        # ====================================================
+        # FRAUD PREDICTION
+        # ====================================================
         (
             fraud_flag,
             fraud_probability,
@@ -574,7 +487,7 @@ if uploaded_file is not None:
         )
 
     # ========================================================
-    # FRAUD BANNER
+    # FRAUD RISK ALERT
     # ========================================================
     if fraud_probability >= 0.80:
 
@@ -595,13 +508,11 @@ if uploaded_file is not None:
         )
 
     # ========================================================
-    # SHAP FACTORS
+    # SHAP EXPLANATION
     # ========================================================
     if top_drivers is not None:
 
-        st.subheader(
-            "🔍 Top Fraud Drivers"
-        )
+        st.subheader("🔍 Top Fraud Drivers")
 
         display_df = top_drivers.copy()
 
@@ -634,7 +545,6 @@ else:
         "Please upload a vehicle image."
     )
 
-
 # ============================================================
 # MODEL STATUS
 # ============================================================
@@ -642,14 +552,14 @@ with st.expander("🛠 Model Status"):
 
     status_data = {
         "Model": [
-                        "Repair Cost Model",
+            "Repair Cost Model",
             "Claim Severity Model",
             "Severity Encoder",
             "Fraud Detection Model"
         ],
 
         "Loaded": [
-                        models_dict["repair_model"] is not None,
+            models_dict["repair_model"] is not None,
             models_dict["severity_model"] is not None,
             models_dict["severity_encoder"] is not None,
             models_dict["fraud_model"] is not None
@@ -663,7 +573,6 @@ with st.expander("🛠 Model Status"):
         use_container_width=True
     )
 
-
 # ============================================================
 # FOOTER
 # ============================================================
@@ -674,6 +583,7 @@ st.markdown("""
 
 This platform combines:
 
+- 🖼️ Vehicle Damage Detection
 - 💰 Repair Cost Estimation
 - 📈 Severity Prediction
 - 🕵️ Fraud Detection
