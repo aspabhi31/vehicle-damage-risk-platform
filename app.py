@@ -36,8 +36,10 @@ st.set_page_config(
 DAMAGE_CLASSES = [
     "Front Breakage",
     "Front Crushed",
+    "Front Normal",
     "Rear Breakage",
-    "Rear Crushed"
+    "Rear Crushed",
+    "Rear Normal"
 ]
 
 MODEL_DIR = "saved_models"
