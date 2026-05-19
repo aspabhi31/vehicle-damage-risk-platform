@@ -3,6 +3,7 @@
 An end-to-end AI-powered insurance analytics platform that classifies vehicle damage from images, estimates repair costs, predicts claim severity, detects potential fraud, and explains model predictions using Explainable AI.
 
  **Live Demo:** https://vehicle-damage-risk-platform-muocmd6xrn6aqdzkgdorfs.streamlit.app/ 
+ 
  **GitHub Repository:** https://github.com/aspabhi31/vehicle-damage-risk-platform
 
 ---
