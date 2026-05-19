@@ -104,9 +104,7 @@ def load_models():
     if os.path.exists(DAMAGE_MODEL_PATH):
 
         try:
-            damage_model = CarClassifierCNN(
-                num_classes=len(DAMAGE_CLASSES)
-            )
+            damage_model = CarClassifierCNN()
 
             checkpoint = torch.load(
                 DAMAGE_MODEL_PATH,
