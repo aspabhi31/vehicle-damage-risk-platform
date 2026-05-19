@@ -1,9 +1,10 @@
 streamlit
-numpy<2
+numpy
 pandas
 scikit-learn
 xgboost
-torch==2.2.2
-torchvision==0.17.2
+torch==2.12.0
+torchvision==0.21.0
 joblib
 pillow
+shap
