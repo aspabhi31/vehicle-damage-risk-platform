@@ -4,7 +4,7 @@ pandas
 scikit-learn
 xgboost
 torch==2.12.0
-torchvision==0.21.0
+torchvision==0.27.0
 joblib
 pillow
 shap
